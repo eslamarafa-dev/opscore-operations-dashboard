@@ -1,0 +1,61 @@
+html { scroll-behavior: smooth; }
+
+/* Sticky Navigation Highlight Effect */
+.nav-item { position: relative; transition: all 0.25s ease; overflow: hidden; }
+.nav-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 4px;
+    background-color: #2563EB;
+    transform: scaleY(0);
+    transition: transform 0.2s ease;
+}
+.nav-item:hover::before, .nav-item.active::before { transform: scaleY(1); }
+.nav-item:hover { background-color: rgba(31, 41, 55, 0.5); padding-left: 1rem; }
+.nav-item.active { background: rgba(37, 99, 235, 0.12); color: #60A5FA; padding-left: 1rem; }
+
+/* Section Reveal */
+.section-reveal { opacity: 0; transform: translateY(24px); transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+.section-reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* Float animation for metric cards */
+@keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+.float-animation { animation: float 4s ease-in-out infinite; }
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.sidebar-transition { transition: transform 0.3s ease-in-out; }
+
+.card-hover { transition: all 0.25s ease; }
+.card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 20px -10px rgba(0, 0, 0, 0.18);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+@media (max-width: 768px) {
+    .sidebar-mobile-hidden { transform: translateX(-100%); }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .float-animation { animation: none; }
+    .section-reveal { transition: none; }
+}

@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OPSCORE - Operations Dashboard</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563EB',
+                        primaryHover: '#1d4ed8',
+                        background: '#F9FAFB',
+                        sidebar: '#111827',
+                        card: '#FFFFFF',
+                        border: '#E5E7EB',
+                        textPrimary: '#111827',
+                        textSecondary: '#6B7280',
+                        success: '#16A34A',
+                        warning: '#F59E0B',
+                        error: '#DC2626'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    },
+                    animation: {
+                        'fade-in-up': 'fadeInUp 0.5s ease-out forwards',
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html { scroll-behavior: smooth; }
+
+        /* Sticky Navigation Highlight Effect */
+        .nav-item { position: relative; transition: all 0.25s ease; overflow: hidden; }
+        .nav-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background-color: #2563EB;
+            transform: scaleY(0);
+            transition: transform 0.2s ease;
+        }
+        .nav-item:hover::before, .nav-item.active::before { transform: scaleY(1); }
+        .nav-item:hover { background-color: rgba(31, 41, 55, 0.5); padding-left: 1rem; }
+        .nav-item.active { background: rgba(37, 99, 235, 0.12); color: #60A5FA; padding-left: 1rem; }
+
+        /* Section Reveal */
+        .section-reveal { opacity: 0; transform: translateY(24px); transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1); }
+        .section-reveal.visible { opacity: 1; transform: translateY(0); }
+
+        /* Float animation for metric cards */
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+        .float-animation { animation: float 4s ease-in-out infinite; }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            line-height: 1;
+        }
+
+        .sidebar-transition { transition: transform 0.3s ease-in-out; }
+
+        .card-hover { transition: all 0.25s ease; }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 14px 20px -10px rgba(0, 0, 0, 0.18);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
+
+        @media (max-width: 768px) {
+            .sidebar-mobile-hidden { transform: translateX(-100%); }
+        }
+
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            .float-animation { animation: none; }
+            .section-reveal { transition: none; }
+        }
+    </style>
+</head>
+
+<body class="bg-background font-sans text-textPrimary">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar-transition fixed inset-y-0 left-0 w-64 bg-sidebar text-white z-50 md:translate-x-0 sidebar-mobile-hidden">
+        <div class="flex items-center justify-between p-4 border-b border-gray-800">
+            <h1 class="text-xl font-semibold tracking-tight">OPSCORE</h1>
+            <button id="closeSidebar" class="md:hidden text-gray-400 hover:text-white" aria-label="Close sidebar">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <nav class="p-4" aria-label="Primary">
+            <ul class="space-y-2">
+                <li>
+                    <a href="#dashboard-section" class="nav-item flex items-center p-2 rounded text-gray-300 hover:text-white active">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                        </svg>
+                        <span class="flex-1">Dashboard</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#clients-section" class="nav-item flex items-center p-2 rounded text-gray-300 hover:text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span class="flex-1">Clients</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#tasks-section" class="nav-item flex items-center p-2 rounded text-gray-300 hover:text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <span class="flex-1">Tasks</span>
+                        <span id="tasksNavBadge" class="hidden ml-auto text-xs font-bold px-2 py-0.5 rounded-full bg-white/10 text-white">0</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#alerts-section" class="nav-item flex items-center p-2 rounded text-gray-300 hover:text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <span class="flex-1">Alerts</span>
+                        <span id="alertsNavBadge" class="hidden ml-auto text-xs font-bold px-2 py-0.5 rounded-full bg-white/10 text-white">0</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#settings-section" class="nav-item flex items-center p-2 rounded text-gray-300 hover:text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span class="flex-1">Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- Slide-over Modal: Add Client -->
+    <div id="addClientModal" class="fixed inset-0 z-[100] hidden" aria-hidden="true">
+        <div class="modal-backdrop absolute inset-0 bg-gray-900/50 backdrop-blur-sm"></div>
+        <div class="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl p-8 transform transition-transform translate-x-full" id="modalContent" role="dialog" aria-modal="true" aria-label="Add New Client">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-2xl font-bold text-primary">Add New Client</h3>
+                <button id="closeModal" class="text-gray-400 hover:text-gray-600" aria-label="Close">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form id="addClientForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-semibold mb-2" for="newClientName">Full Name</label>
+                    <input type="text" id="newClientName" required class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none" placeholder="e.g. Alexander Pierce" />
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-2" for="newClientEmail">Email Address</label>
+                    <input type="email" id="newClientEmail" required class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none" placeholder="alex@company.com" />
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-2" for="newClientCompany">Company Name</label>
+                    <input type="text" id="newClientCompany" required class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none" placeholder="Acme Inc." />
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-2" for="newClientStatus">Account Status</label>
+                    <select id="newClientStatus" class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none bg-white">
+                        <option value="Active">Active</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Blocked">Blocked</option>
+                    </select>
+                </div>
+                <div class="pt-6">
+                    <button type="submit" class="w-full bg-primary hover:bg-primaryHover text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/30 transition-all active:scale-95">
+                        Create Client Profile
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Slide-over Modal: Edit Client -->
+    <div id="editClientModal" class="fixed inset-0 z-[100] hidden" aria-hidden="true">
+        <div class="modal-backdrop absolute inset-0 bg-gray-900/50 backdrop-blur-sm"></div>
+        <div class="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl p-8 transform transition-transform translate-x-full" id="editModalContent" role="dialog" aria-modal="true" aria-label="Edit Client">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-2xl font-bold text-primary">Edit Client</h3>
+                <button id="closeEditModal" class="text-gray-400 hover:text-gray-600" aria-label="Close">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form id="editClientForm" class="space-y-6">
+                <input type="hidden" id="editClientId" />
+                <div>
+                    <label class="block text-sm font-semibold mb-2" for="editClientName">Full Name</label>
+                    <input type="text" id="editClientName" required class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none" />
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-2" for="editClientEmail">Email Address</label>
+                    <input type="email" id="editClientEmail" required class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none" />
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-2" for="editClientCompany">Company Name</label>
+                    <input type="text" id="editClientCompany" required class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none" />
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-2" for="editClientStatus">Account Status</label>
+                    <select id="editClientStatus" class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none bg-white">
+                        <option value="Active">Active</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Blocked">Blocked</option>
+                    </select>
+                </div>
+                <div class="pt-6">
+                    <button type="submit" class="w-full bg-primary hover:bg-primaryHover text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/30 transition-all active:scale-95">
+                        Update Client Profile
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Slide-over Modal: Profile -->
+    <div id="profileModal" class="fixed inset-0 z-[100] hidden" aria-hidden="true">
+        <div class="modal-backdrop absolute inset-0 bg-gray-900/50 backdrop-blur-sm"></div>
+        <div class="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl p-8 transform transition-transform translate-x-full" id="profileModalContent" role="dialog" aria-modal="true" aria-label="Update Profile">
+            <div class="flex justify-between items-center mb-8">
+                <h3 class="text-2xl font-bold text-primary">Update Profile</h3>
+                <button id="closeProfileModal" class="text-gray-400 hover:text-gray-600" aria-label="Close">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <form id="profileForm" class="space-y-6">
+                <div>
+                    <label class="block text-sm font-semibold mb-2" for="profileFormName">Full Name</label>
+                    <input type="text" id="profileFormName" required class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none" />
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-2" for="profileFormTitle">Job Title</label>
+                    <input type="text" id="profileFormTitle" required class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none" />
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold mb-2" for="profileFormAvatar">Avatar Initials</label>
+                    <input type="text" id="profileFormAvatar" maxlength="2" required class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none text-center text-2xl font-bold" placeholder="JD" />
+                    <p class="text-xs text-textSecondary mt-2">If you uploaded an image avatar, initials are used only as fallback.</p>
+                </div>
+                <div class="pt-6">
+                    <button type="submit" class="w-full bg-primary hover:bg-primaryHover text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/30 transition-all active:scale-95">
+                        Save Profile Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Slide-over Modal: Task -->
+    <div id="taskModal" class="fixed inset-0 z-[100] hidden" aria-hidden="true">
+        <div class="modal-backdrop absolute inset-0 bg-gray-900/50 backdrop-blur-sm"></div>
+        <div class="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl p-8 transform transition-transform translate-x-full" id="taskModalContent" role="dialog" aria-modal="true" aria-label="Task">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h3 id="taskModalTitle" class="text-2xl font-bold text-primary">Task</h3>
+                    <p class="text-sm text-textSecondary mt-1">Create or update operational tasks.</p>
+                </div>
+                <button id="closeTaskModal" class="text-gray-400 hover:text-gray-600" aria-label="Close">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <form id="taskForm" class="space-y-6">
+                <input type="hidden" id="taskId" />
+
+                <div>
+                    <label class="block text-sm font-semibold mb-2" for="taskTitle">Title</label>
+                    <input type="text" id="taskTitle" required class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none" placeholder="e.g. Ticket Audit" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold mb-2" for="taskDescription">Description</label>
+                    <textarea id="taskDescription" required rows="4" class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none" placeholder="Write a short operational description..."></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold mb-2" for="taskStatus">Status</label>
+                        <select id="taskStatus" class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none bg-white">
+                            <option value="Pending">Pending</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-2" for="taskPriority">Priority</label>
+                        <select id="taskPriority" class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none bg-white">
+                            <option value="Low">Low</option>
+                            <option value="Medium" selected>Medium</option>
+                            <option value="High">High</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold mb-2" for="taskAssigneeName">Assignee</label>
+                        <input type="text" id="taskAssigneeName" required class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none" placeholder="e.g. John Doe" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-2" for="taskAssigneeInitials">Initials</label>
+                        <input type="text" id="taskAssigneeInitials" maxlength="2" required class="w-full px-4 py-3 rounded-xl border border-border focus:ring-2 focus:ring-primary focus:outline-none text-center font-bold" placeholder="JD" />
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 pt-4">
+                    <button type="submit" class="flex-1 bg-primary hover:bg-primaryHover text-white font-bold py-3 rounded-xl shadow-lg shadow-primary/30 transition-all active:scale-95">
+                        Save Task
+                    </button>
+                    <button type="button" id="deleteTaskBtn" class="hidden px-4 py-3 rounded-xl border border-border text-error font-bold hover:bg-red-50 transition-all active:scale-95">
+                        Delete
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Slide-over Modal: Alert -->
+    <div id="alertModal" class="fixed inset-0 z-[100] hidden" aria-hidden="true">
+        <div class="modal-backdrop absolute inset-0 bg-gray-900/50 backdrop-blur-sm"></div>
+        <div class="absolute inset-y-0 right-0 w-full max-w-md bg-white shadow-2xl p-8 transform transition-transform translate-x-full" id="alertModalContent" role="dialog" aria-modal="true" aria-label="Alert">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h3 class="text-2xl font-bold text-primary">Alert Details</h3>
+                    <p id="alertMeta" class="text-sm text-textSecondary mt-1">—</p>
+                </div>
+                <button id="closeAlertModal" class="text-gray-400 hover:text-gray-600" aria-label="Close">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <h4 id="alertTitle" class="text-lg font-bold">—</h4>
+                    <p id="alertMessage" class="text-sm text-textSecondary mt-2">—</p>
+                </div>
+
+                <div class="rounded-xl border border-border bg-gray-50 p-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-semibold">Status</span>
+                        <span id="alertStatusBadge" class="status-badge bg-gray-200 text-gray-700">—</span>
+                    </div>
+                    <div class="flex items-center justify-between mt-3">
+                        <span class="text-sm font-semibold">Severity</span>
+                        <span id="alertSeverityBadge" class="status-badge bg-gray-200 text-gray-700">—</span>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 pt-2">
+                    <button id="ackAlertBtn" type="button" class="flex-1 bg-primary hover:bg-primaryHover text-white font-bold py-3 rounded-xl shadow-lg shadow-primary/30 transition-all active:scale-95">
+                        Acknowledge
+                    </button>
+                    <button id="resolveAlertBtn" type="button" class="px-4 py-3 rounded-xl border border-border text-success font-bold hover:bg-green-50 transition-all active:scale-95">
+                        Resolve
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="md:ml-64">
+        <!-- Header -->
+        <header id="appHeader" class="bg-white shadow-sm sticky top-0 z-40">
+            <div class="flex items-center justify-between p-4">
+                <div class="flex items-center">
+                    <button id="openSidebar" class="md:hidden mr-4 text-gray-500" aria-label="Open sidebar">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <h1 id="pageTitle" class="text-2xl font-semibold">Dashboard</h1>
+                </div>
+
+                <div class="relative w-64 hidden sm:block">
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="Search clients..."
+                        class="w-full pl-10 pr-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                        autocomplete="off"
+                    />
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-2.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+            </div>
+        </header>
+
+        <main class="p-6">
+            <!-- Metrics Overview -->
+            <section id="dashboard-section" class="mb-12 scroll-mt-24 section-reveal" aria-label="Dashboard Overview">
+                <h2 class="text-xl font-semibold mb-6 flex items-center text-primary">
+                    <span class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mr-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </span>
+                    Dashboard Overview
+                </h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-card rounded-xl shadow-sm border border-border p-6 card-hover float-animation" style="animation-delay: 0s">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-2 rounded-lg bg-blue-50 text-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </div>
+                            <span class="text-success text-xs font-semibold">Live</span>
+                        </div>
+                        <h3 class="text-sm font-medium text-textSecondary">Total Clients</h3>
+                        <p class="text-3xl font-bold mt-1" id="totalClients">0</p>
+                    </div>
+
+                    <div class="bg-card rounded-xl shadow-sm border border-border p-6 card-hover float-animation" style="animation-delay: 0.5s">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-2 rounded-lg bg-green-50 text-success">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                            </div>
+                            <span class="text-success text-xs font-semibold">Live</span>
+                        </div>
+                        <h3 class="text-sm font-medium text-textSecondary">Active Tasks</h3>
+                        <p class="text-3xl font-bold mt-1" id="activeTasks">0</p>
+                    </div>
+
+                    <div class="bg-card rounded-xl shadow-sm border border-border p-6 card-hover float-animation" style="animation-delay: 1s">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-2 rounded-lg bg-yellow-50 text-warning">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            </div>
+                            <span class="text-warning text-xs font-semibold">Attention</span>
+                        </div>
+                        <h3 class="text-sm font-medium text-textSecondary">Pending Issues</h3>
+                        <p class="text-3xl font-bold mt-1" id="pendingIssues">0</p>
+                    </div>
+
+                    <div class="bg-card rounded-xl shadow-sm border border-border p-6 card-hover float-animation" style="animation-delay: 1.5s">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="p-2 rounded-lg bg-red-50 text-error">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <span class="text-error text-xs font-semibold">Blocked</span>
+                        </div>
+                        <h3 class="text-sm font-medium text-textSecondary">System Risk</h3>
+                        <p class="text-3xl font-bold mt-1" id="blockedAccounts">0</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Clients -->
+            <section id="clients-section" class="mb-12 scroll-mt-24 section-reveal" aria-label="Clients">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold flex items-center text-primary">
+                        <span class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                        </span>
+                        Client Portfolio
+                    </h2>
+
+                    <div class="flex items-center gap-3">
+                        <div class="relative w-56 sm:hidden">
+                            <input
+                                type="text"
+                                id="searchInputMobile"
+                                placeholder="Search..."
+                                class="w-full pl-9 pr-3 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                                autocomplete="off"
+                            />
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 absolute left-3 top-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+
+                        <button id="openModalBtn" class="bg-primary hover:bg-primaryHover text-white px-5 py-2.5 rounded-xl flex items-center shadow-lg shadow-primary/20 transition-all active:scale-95">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Add New Client
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-card rounded-2xl shadow-xl shadow-gray-200/50 overflow-hidden border border-border">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-border">
+                            <thead class="bg-gray-50/50">
+                                <tr>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-textSecondary uppercase tracking-widest">Client Name</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-textSecondary uppercase tracking-widest">Email Address</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-textSecondary uppercase tracking-widest">Enterprise</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-textSecondary uppercase tracking-widest">Status</th>
+                                    <th class="px-6 py-4 text-center text-xs font-bold text-textSecondary uppercase tracking-widest">Actions</th>
+                                </tr>
+                            </thead>
+
+                            <!-- States (loading/error/empty) are isolated so re-rendering data doesn't delete them -->
+                            <tbody class="bg-white divide-y divide-border" id="clientsStateBody">
+                                <tr id="loadingRow" class="hidden">
+                                    <td colspan="5" class="px-6 py-12 text-center">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+                                            <p class="text-textSecondary">Loading clients...</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr id="errorRow" class="hidden">
+                                    <td colspan="5" class="px-6 py-12 text-center">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-error mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <p class="text-error font-medium mb-2">Failed to load clients</p>
+                                            <button id="retryFetchClients" class="text-primary hover:underline">Try again</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr id="emptyRow" class="hidden">
+                                    <td colspan="5" class="px-6 py-12 text-center">
+                                        <div class="flex flex-col items-center justify-center">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-textSecondary mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                            </svg>
+                                            <p id="emptyRowMessage" class="text-textSecondary">No clients found</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+
+                            <!-- Data body -->
+                            <tbody class="bg-white divide-y divide-border" id="clientsTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tasks -->
+            <section id="tasks-section" class="mb-12 scroll-mt-24 section-reveal" aria-label="Operational Tasks">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold flex items-center text-primary">
+                        <span class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                        </span>
+                        Operational Tasks
+                    </h2>
+
+                    <button id="addTaskBtn" class="px-5 py-2.5 rounded-xl bg-white border border-border text-sm font-bold hover:border-primary hover:text-primary hover:bg-gray-50 transition-all active:scale-95">
+                        + Add Task
+                    </button>
+                </div>
+
+                <div id="tasksGrid" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div>
+            </section>
+
+            <!-- Alerts -->
+            <section id="alerts-section" class="mb-12 scroll-mt-24 section-reveal" aria-label="System Intelligence">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold flex items-center text-primary">
+                        <span class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                        </span>
+                        System Intelligence
+                    </h2>
+
+                    <button id="simulateAlertBtn" class="px-5 py-2.5 rounded-xl bg-white border border-border text-sm font-bold hover:border-primary hover:text-primary hover:bg-gray-50 transition-all active:scale-95">
+                        Simulate Alert
+                    </button>
+                </div>
+
+                <div id="alertsList" class="space-y-4"></div>
+            </section>
+
+            <!-- Settings -->
+            <section id="settings-section" class="mb-12 scroll-mt-24 section-reveal" aria-label="Configuration">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold flex items-center text-primary">
+                        <span class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center mr-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            </svg>
+                        </span>
+                        Configuration
+                    </h2>
+                </div>
+
+                <div class="bg-card rounded-2xl border border-border p-8">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
+                        <div>
+                            <h3 class="font-bold text-lg mb-4">Profile Overview</h3>
+                            <div class="flex items-center space-x-4 mb-6">
+                                <div class="relative group">
+                                    <input type="file" id="avatarUpload" class="hidden" accept="image/*" />
+                                    <div id="profileAvatar" class="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-blue-400 flex items-center justify-center text-white text-2xl font-bold shadow-xl overflow-hidden">JD</div>
+                                    <button type="button" class="absolute -bottom-2 -right-2 p-1.5 bg-white border border-border rounded-lg shadow-sm cursor-pointer hover:text-primary hover:scale-110 transition-transform" onclick="document.getElementById('avatarUpload').click()" aria-label="Upload avatar">
+                                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                    </button>
+                                </div>
+                                <div>
+                                    <h4 id="profileName" class="font-bold text-xl">John Doe</h4>
+                                    <p id="profileTitle" class="text-sm text-textSecondary">Lead Operations Director</p>
+                                </div>
+                            </div>
+                            <button id="openProfileModalBtn" class="px-6 py-2.5 border border-border rounded-xl text-sm font-bold hover:bg-gray-50 hover:border-primary hover:text-primary transition-all active:scale-95">Update Information</button>
+                        </div>
+
+                        <div class="space-y-6">
+                            <h3 class="font-bold text-lg mb-4">System Preferences</h3>
+                            <div class="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
+                                <span class="font-medium text-sm">Real-time Analytics</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" checked class="sr-only peer" />
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                </label>
+                            </div>
+                            <div class="flex justify-between items-center p-4 bg-gray-50 rounded-xl">
+                                <span class="font-medium text-sm">Weekly Summary Reports</span>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" class="sr-only peer" />
+                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        /********************
+         * Utilities
+         ********************/
+        const esc = (value = '') => String(value).replace(/[&<>"']/g, (c) => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[c]));
+
+        const uid = () => Date.now() + Math.floor(Math.random() * 1000);
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `fixed top-6 right-6 px-6 py-4 rounded-xl shadow-xl z-[200] animate-fade-in-up ${
+                type === 'success' ? 'bg-green-600 text-white' :
+                type === 'error' ? 'bg-red-600 text-white' :
+                type === 'warning' ? 'bg-yellow-600 text-white' :
+                'bg-primary text-white'
+            }`;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-16px)';
+                setTimeout(() => toast.remove(), 250);
+            }, 2800);
+        }
+
+        function formatTime(ts) {
+            try {
+                return new Intl.DateTimeFormat(undefined, {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }).format(new Date(ts));
+            } catch {
+                const d = new Date(ts);
+                return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+            }
+        }
+
+        /********************
+         * DOM Cache
+         ********************/
+        const sidebar = document.getElementById('sidebar');
+        const openSidebarBtn = document.getElementById('openSidebar');
+        const closeSidebarBtn = document.getElementById('closeSidebar');
+        const appHeader = document.getElementById('appHeader');
+        const pageTitleEl = document.getElementById('pageTitle');
+
+        // Search
+        const searchInput = document.getElementById('searchInput');
+        const searchInputMobile = document.getElementById('searchInputMobile');
+
+        // Clients table
+        const clientsTableBody = document.getElementById('clientsTableBody');
+        const loadingRow = document.getElementById('loadingRow');
+        const errorRow = document.getElementById('errorRow');
+        const emptyRow = document.getElementById('emptyRow');
+        const emptyRowMessage = document.getElementById('emptyRowMessage');
+        const retryFetchClientsBtn = document.getElementById('retryFetchClients');
+
+        // Metrics
+        const totalClientsEl = document.getElementById('totalClients');
+        const activeTasksEl = document.getElementById('activeTasks');
+        const pendingIssuesEl = document.getElementById('pendingIssues');
+        const blockedAccountsEl = document.getElementById('blockedAccounts');
+
+        // Sidebar badges
+        const tasksNavBadge = document.getElementById('tasksNavBadge');
+        const alertsNavBadge = document.getElementById('alertsNavBadge');
+
+        // Modals - Clients
+        const openModalBtn = document.getElementById('openModalBtn');
+        const addClientModal = document.getElementById('addClientModal');
+        const modalContent = document.getElementById('modalContent');
+        const closeModalBtn = document.getElementById('closeModal');
+        const addClientForm = document.getElementById('addClientForm');
+
+        const editClientModal = document.getElementById('editClientModal');
+        const editModalContent = document.getElementById('editModalContent');
+        const closeEditModalBtn = document.getElementById('closeEditModal');
+        const editClientForm = document.getElementById('editClientForm');
+
+        // Modals - Profile
+        const profileModal = document.getElementById('profileModal');
+        const profileModalContent = document.getElementById('profileModalContent');
+        const closeProfileModalBtn = document.getElementById('closeProfileModal');
+        const profileForm = document.getElementById('profileForm');
+        const openProfileModalBtn = document.getElementById('openProfileModalBtn');
+
+        // Profile avatar
+        const avatarUpload = document.getElementById('avatarUpload');
+        const profileAvatar = document.getElementById('profileAvatar');
+
+        // Tasks
+        const tasksGrid = document.getElementById('tasksGrid');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+
+        // Task modal
+        const taskModal = document.getElementById('taskModal');
+        const taskModalContent = document.getElementById('taskModalContent');
+        const closeTaskModalBtn = document.getElementById('closeTaskModal');
+        const taskModalTitle = document.getElementById('taskModalTitle');
+        const taskForm = document.getElementById('taskForm');
+        const deleteTaskBtn = document.getElementById('deleteTaskBtn');
+
+        // Alerts
+        const alertsListEl = document.getElementById('alertsList');
+        const simulateAlertBtn = document.getElementById('simulateAlertBtn');
+
+        // Alert modal
+        const alertModal = document.getElementById('alertModal');
+        const alertModalContent = document.getElementById('alertModalContent');
+        const closeAlertModalBtn = document.getElementById('closeAlertModal');
+        const alertMeta = document.getElementById('alertMeta');
+        const alertTitle = document.getElementById('alertTitle');
+        const alertMessage = document.getElementById('alertMessage');
+        const alertStatusBadge = document.getElementById('alertStatusBadge');
+        const alertSeverityBadge = document.getElementById('alertSeverityBadge');
+        const ackAlertBtn = document.getElementById('ackAlertBtn');
+        const resolveAlertBtn = document.getElementById('resolveAlertBtn');
+
+        /********************
+         * Local State
+         ********************/
+        const state = {
+            clients: [],
+            tasks: [
+                {
+                    id: uid(),
+                    status: 'Completed',
+                    priority: 'Medium',
+                    title: 'Database Sync',
+                    description: 'Automated synchronization of global client repositories.',
+                    assignee: { initials: 'JD', name: 'John Doe' },
+                    updatedAt: Date.now() - 1000 * 60 * 35
+                },
+                {
+                    id: uid(),
+                    status: 'In Progress',
+                    priority: 'High',
+                    title: 'Ticket Audit',
+                    description: 'Reviewing high-priority support tickets for Q3.',
+                    assignee: { initials: 'AS', name: 'Alice Smith' },
+                    updatedAt: Date.now() - 1000 * 60 * 12
+                },
+                {
+                    id: uid(),
+                    status: 'Pending',
+                    priority: 'Medium',
+                    title: 'System Health',
+                    description: 'Bi-weekly diagnostic check of infrastructure.',
+                    assignee: { initials: 'RK', name: 'Ray King' },
+                    updatedAt: Date.now() - 1000 * 60 * 6
+                }
+            ],
+            alerts: [
+                {
+                    id: uid(),
+                    severity: 'critical',
+                    title: 'Critical: Server Overload',
+                    message: 'Main cluster node #4 is reporting 98% memory usage.',
+                    acknowledged: false,
+                    createdAt: Date.now() - 1000 * 60 * 20
+                },
+                {
+                    id: uid(),
+                    severity: 'info',
+                    title: 'Deployment Successful',
+                    message: 'Patch v4.2.1 has been pushed to production successfully.',
+                    acknowledged: true,
+                    createdAt: Date.now() - 1000 * 60 * 50
+                }
+            ],
+            selectedAlertId: null
+        };
+
+        /********************
+         * Modal helpers
+         ********************/
+        function toggleSlideOver(modalEl, panelEl, show) {
+            if (show) {
+                modalEl.classList.remove('hidden');
+                modalEl.setAttribute('aria-hidden', 'false');
+                setTimeout(() => panelEl.classList.remove('translate-x-full'), 10);
+            } else {
+                panelEl.classList.add('translate-x-full');
+                setTimeout(() => {
+                    modalEl.classList.add('hidden');
+                    modalEl.setAttribute('aria-hidden', 'true');
+                }, 250);
+            }
+        }
+
+        function closeOnBackdrop(modalEl, onClose) {
+            modalEl.addEventListener('click', (e) => {
+                if (e.target.classList.contains('modal-backdrop')) onClose();
+            });
+        }
+
+        /********************
+         * Clients
+         ********************/
+        function getStatusBadge(status) {
+            const statusClasses = {
+                'Active': 'bg-green-100 text-success',
+                'Pending': 'bg-yellow-100 text-warning',
+                'Blocked': 'bg-red-100 text-error'
+            };
+            return `<span class="status-badge ${statusClasses[status] || 'bg-gray-100 text-textSecondary'}">${esc(status)}</span>`;
+        }
+
+        function renderClientRow(client) {
+            const initial = (client?.name || '?').trim().charAt(0).toUpperCase();
+            return `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white font-semibold">
+                                ${esc(initial)}
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-semibold text-textPrimary">${esc(client.name)}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-textSecondary">${esc(client.email)}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-textPrimary">${esc(client.company?.name || 'N/A')}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">${getStatusBadge(client.status || 'Active')}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-center">
+                        <button data-action="edit-client" data-client-id="${client.id}" class="text-primary hover:text-blue-800 mr-3 hover:underline">Edit</button>
+                        <button data-action="delete-client" data-client-id="${client.id}" class="text-error hover:text-red-800 hover:underline">Delete</button>
+                    </td>
+                </tr>
+            `;
+        }
+
+        function setClientTableState(mode, message) {
+            const modes = ['loading', 'error', 'empty'];
+            if (!modes.includes(mode)) return;
+
+            loadingRow.classList.add('hidden');
+            errorRow.classList.add('hidden');
+            emptyRow.classList.add('hidden');
+
+            if (mode === 'empty' && message) emptyRowMessage.textContent = message;
+
+            if (mode === 'loading') loadingRow.classList.remove('hidden');
+            if (mode === 'error') errorRow.classList.remove('hidden');
+            if (mode === 'empty') emptyRow.classList.remove('hidden');
+        }
+
+        function renderClients(filterTerm = '') {
+            const term = filterTerm.trim().toLowerCase();
+            const data = term
+                ? state.clients.filter(c =>
+                    (c.name || '').toLowerCase().includes(term) ||
+                    (c.email || '').toLowerCase().includes(term) ||
+                    (c.company?.name || '').toLowerCase().includes(term)
+                )
+                : state.clients;
+
+            clientsTableBody.innerHTML = data.map(renderClientRow).join('');
+
+            // state rows
+            loadingRow.classList.add('hidden');
+            errorRow.classList.add('hidden');
+
+            if (state.clients.length === 0) {
+                setClientTableState('empty', 'No clients found');
+            } else if (term && data.length === 0) {
+                setClientTableState('empty', 'No matching clients');
+            } else {
+                emptyRow.classList.add('hidden');
+            }
+        }
+
+        async function fetchClients() {
+            try {
+                clientsTableBody.innerHTML = '';
+                setClientTableState('loading');
+
+                await new Promise(r => setTimeout(r, 450));
+
+                const response = await fetch('https://jsonplaceholder.typicode.com/users');
+                if (!response.ok) throw new Error('Failed to fetch clients');
+                const clients = await response.json();
+
+                const statuses = ['Active', 'Pending', 'Blocked'];
+                state.clients = clients.map(client => ({
+                    ...client,
+                    status: statuses[Math.floor(Math.random() * statuses.length)]
+                }));
+
+                renderClients(getSearchTerm());
+                updateAllMetrics();
+
+            } catch (err) {
+                console.error(err);
+                clientsTableBody.innerHTML = '';
+                setClientTableState('error');
+            }
+        }
+
+        /********************
+         * Tasks
+         ********************/
+        function getTaskStatusUI(status) {
+            const map = {
+                'Completed': { badge: 'bg-green-100 text-success', dot: 'bg-green-500', border: 'hover:border-green-300/60' },
+                'In Progress': { badge: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500', border: 'hover:border-primary/30' },
+                'Pending': { badge: 'bg-yellow-100 text-yellow-700', dot: 'bg-yellow-500', border: 'hover:border-yellow-300/60' }
+            };
+            return map[status] || { badge: 'bg-gray-100 text-gray-700', dot: 'bg-gray-400', border: 'hover:border-primary/30' };
+        }
+
+        function getPriorityPill(priority) {
+            const map = {
+                'High': 'bg-red-100 text-red-700',
+                'Medium': 'bg-gray-100 text-gray-700',
+                'Low': 'bg-emerald-100 text-emerald-700'
+            };
+            return `<span class="px-2.5 py-1 rounded-full ${map[priority] || 'bg-gray-100 text-gray-700'} text-[11px] font-bold uppercase tracking-wide">${esc(priority)}</span>`;
+        }
+
+        function renderTaskCard(task) {
+            const ui = getTaskStatusUI(task.status);
+            const time = formatTime(task.updatedAt);
+
+            return `
+                <button type="button" data-task-id="${task.id}" class="group text-left bg-card p-6 rounded-2xl border border-border ${ui.border} transition-all hover:shadow-2xl hover:shadow-primary/5 cursor-pointer">
+                    <div class="flex justify-between items-start gap-4 mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="px-3 py-1 rounded-full ${ui.badge} text-xs font-bold uppercase tracking-wider">${esc(task.status)}</span>
+                            ${getPriorityPill(task.priority || 'Medium')}
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="h-2 w-2 rounded-full ${ui.dot} ${task.status !== 'Completed' ? 'animate-pulse' : ''}"></span>
+                            <span class="text-xs text-textSecondary">${esc(time)}</span>
+                        </div>
+                    </div>
+
+                    <h3 class="font-bold text-lg mb-2 group-hover:text-primary transition-colors">${esc(task.title)}</h3>
+                    <p class="text-sm text-textSecondary mb-6">${esc(task.description)}</p>
+
+                    <div class="flex items-center pt-4 border-t border-border">
+                        <div class="w-8 h-8 rounded-full bg-sidebar/90 flex items-center justify-center text-white text-xs font-bold">${esc(task.assignee?.initials || 'NA')}</div>
+                        <span class="ml-3 text-xs font-semibold text-textSecondary">${esc(task.assignee?.name || 'Unassigned')}</span>
+                        <span class="ml-auto text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">Open</span>
+                    </div>
+                </button>
+            `;
+        }
+
+        function renderTasks() {
+            if (state.tasks.length === 0) {
+                tasksGrid.innerHTML = `
+                    <div class="md:col-span-3 bg-card rounded-2xl border border-border p-10 text-center">
+                        <p class="text-textSecondary">No tasks yet. Add your first operational task.</p>
+                    </div>
+                `;
+                return;
+            }
+            tasksGrid.innerHTML = state.tasks
+                .slice()
+                .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+                .map(renderTaskCard)
+                .join('');
+        }
+
+        function openTaskModal(taskId = null) {
+            const isEdit = Boolean(taskId);
+            const task = isEdit ? state.tasks.find(t => t.id === taskId) : null;
+
+            taskModalTitle.textContent = isEdit ? 'Edit Task' : 'Add Task';
+            deleteTaskBtn.classList.toggle('hidden', !isEdit);
+
+            document.getElementById('taskId').value = task?.id || '';
+            document.getElementById('taskTitle').value = task?.title || '';
+            document.getElementById('taskDescription').value = task?.description || '';
+            document.getElementById('taskStatus').value = task?.status || 'Pending';
+            document.getElementById('taskPriority').value = task?.priority || 'Medium';
+            document.getElementById('taskAssigneeName').value = task?.assignee?.name || '';
+            document.getElementById('taskAssigneeInitials').value = (task?.assignee?.initials || '').toUpperCase();
+
+            toggleSlideOver(taskModal, taskModalContent, true);
+            setTimeout(() => document.getElementById('taskTitle').focus(), 50);
+        }
+
+        function closeTaskModal() {
+            toggleSlideOver(taskModal, taskModalContent, false);
+        }
+
+        /********************
+         * Alerts
+         ********************/
+        function alertUI(severity) {
+            if (severity === 'critical') {
+                return {
+                    wrap: 'bg-red-50/50 border-red-500 hover:bg-red-50',
+                    iconWrap: 'bg-red-100 text-red-600',
+                    title: 'text-red-800',
+                    message: 'text-red-600',
+                    severityBadge: 'bg-red-100 text-red-700'
+                };
+            }
+            return {
+                wrap: 'bg-blue-50/50 border-blue-500 hover:bg-blue-50',
+                iconWrap: 'bg-blue-100 text-blue-600',
+                title: 'text-blue-800',
+                message: 'text-blue-600',
+                severityBadge: 'bg-blue-100 text-blue-700'
+            };
+        }
+
+        function renderAlertItem(alert) {
+            const ui = alertUI(alert.severity);
+            const meta = `${alert.severity === 'critical' ? 'Critical' : 'Info'} • ${formatTime(alert.createdAt)}`;
+            const statusPill = alert.acknowledged
+                ? `<span class="status-badge bg-gray-100 text-gray-700">Acknowledged</span>`
+                : `<span class="status-badge bg-primary/10 text-primary">New</span>`;
+
+            const icon = alert.severity === 'critical'
+                ? `<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`
+                : `<svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`;
+
+            return `
+                <button type="button" data-alert-id="${alert.id}" class="w-full text-left p-5 ${ui.wrap} border-l-4 rounded-r-xl flex items-center gap-4 group cursor-pointer transition-colors">
+                    <div class="p-2 ${ui.iconWrap} rounded-lg">
+                        ${icon}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="min-w-0">
+                                <h4 class="font-bold ${ui.title} truncate">${esc(alert.title)}</h4>
+                                <p class="text-sm ${ui.message} truncate">${esc(alert.message)}</p>
+                            </div>
+                            <div class="flex flex-col items-end gap-2">
+                                ${statusPill}
+                                <span class="text-xs text-textSecondary">${esc(meta)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </button>
+            `;
+        }
+
+        function renderAlerts() {
+            if (state.alerts.length === 0) {
+                alertsListEl.innerHTML = `
+                    <div class="bg-card rounded-2xl border border-border p-10 text-center">
+                        <p class="text-textSecondary">No alerts right now. System looks healthy.</p>
+                    </div>
+                `;
+                return;
+            }
+            alertsListEl.innerHTML = state.alerts
+                .slice()
+                .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+                .map(renderAlertItem)
+                .join('');
+        }
+
+        function openAlertModal(alertId) {
+            const alert = state.alerts.find(a => a.id === alertId);
+            if (!alert) return;
+
+            state.selectedAlertId = alertId;
+
+            alertTitle.textContent = alert.title;
+            alertMessage.textContent = alert.message;
+            alertMeta.textContent = `${alert.severity === 'critical' ? 'Critical alert' : 'Informational'} • ${formatTime(alert.createdAt)}`;
+
+            alertSeverityBadge.textContent = alert.severity === 'critical' ? 'Critical' : 'Info';
+            alertSeverityBadge.className = `status-badge ${alert.severity === 'critical' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`;
+
+            alertStatusBadge.textContent = alert.acknowledged ? 'Acknowledged' : 'New';
+            alertStatusBadge.className = `status-badge ${alert.acknowledged ? 'bg-gray-100 text-gray-700' : 'bg-primary/10 text-primary'}`;
+
+            ackAlertBtn.disabled = alert.acknowledged;
+            ackAlertBtn.classList.toggle('opacity-60', alert.acknowledged);
+            ackAlertBtn.classList.toggle('cursor-not-allowed', alert.acknowledged);
+
+            toggleSlideOver(alertModal, alertModalContent, true);
+        }
+
+        function closeAlertModal() {
+            state.selectedAlertId = null;
+            toggleSlideOver(alertModal, alertModalContent, false);
+        }
+
+        function simulateAlert() {
+            const options = [
+                {
+                    severity: 'critical',
+                    title: 'Critical: Queue Backlog',
+                    message: 'Support queue exceeded SLA threshold (P1 backlog detected).'
+                },
+                {
+                    severity: 'critical',
+                    title: 'Critical: API Error Spike',
+                    message: 'Spike in 5xx responses detected over the last 5 minutes.'
+                },
+                {
+                    severity: 'info',
+                    title: 'Deployment Successful',
+                    message: 'Hotfix deployed successfully to production.'
+                },
+                {
+                    severity: 'info',
+                    title: 'Maintenance Window Scheduled',
+                    message: 'Planned maintenance scheduled for 02:00 UTC.'
+                }
+            ];
+
+            const pick = options[Math.floor(Math.random() * options.length)];
+            state.alerts.unshift({
+                id: uid(),
+                severity: pick.severity,
+                title: pick.title,
+                message: pick.message,
+                acknowledged: false,
+                createdAt: Date.now()
+            });
+
+            renderAlerts();
+            updateAllMetrics();
+            showToast('New alert created', pick.severity === 'critical' ? 'warning' : 'success');
+        }
+
+        /********************
+         * Metrics
+         ********************/
+        function updateAllMetrics() {
+            totalClientsEl.textContent = state.clients.length;
+            blockedAccountsEl.textContent = state.clients.filter(c => c.status === 'Blocked').length;
+
+            const activeTasks = state.tasks.filter(t => t.status !== 'Completed').length;
+            activeTasksEl.textContent = activeTasks;
+
+            const pendingIssues = state.alerts.filter(a => a.severity === 'critical').length;
+            pendingIssuesEl.textContent = pendingIssues;
+
+            // Sidebar badges
+            tasksNavBadge.textContent = activeTasks;
+            tasksNavBadge.classList.toggle('hidden', activeTasks === 0);
+
+            alertsNavBadge.textContent = pendingIssues;
+            alertsNavBadge.classList.toggle('hidden', pendingIssues === 0);
+        }
+
+        /********************
+         * Navigation (scroll spy + title)
+         ********************/
+        const sectionTitles = {
+            'dashboard-section': 'Dashboard',
+            'clients-section': 'Clients',
+            'tasks-section': 'Tasks',
+            'alerts-section': 'Alerts',
+            'settings-section': 'Settings'
+        };
+
+        function getHeaderOffset() {
+            return (appHeader?.offsetHeight || 0) + 16;
+        }
+
+        function updateActiveLink() {
+            const sections = document.querySelectorAll('main section');
+            const navLinks = document.querySelectorAll('.nav-item');
+
+            const headerOffset = getHeaderOffset();
+            const scrollPos = window.scrollY + headerOffset + (window.innerHeight * 0.15);
+            const bottomThreshold = document.documentElement.scrollHeight - window.innerHeight - 8;
+
+            let current = '';
+
+            if (window.scrollY >= bottomThreshold) {
+                current = 'settings-section';
+            } else {
+                sections.forEach(section => {
+                    const top = section.offsetTop - headerOffset;
+                    const bottom = top + section.offsetHeight;
+                    if (scrollPos >= top && scrollPos < bottom) {
+                        current = section.id;
+                    }
+                });
+            }
+
+            navLinks.forEach(link => {
+                link.classList.toggle('active', link.getAttribute('href')?.slice(1) === current);
+            });
+
+            if (current && sectionTitles[current]) {
+                pageTitleEl.textContent = sectionTitles[current];
+            }
+        }
+
+        function scrollToSection(sectionId) {
+            const target = document.querySelector(sectionId);
+            if (!target) return;
+
+            const top = target.offsetTop - getHeaderOffset();
+            window.scrollTo({ top, behavior: 'smooth' });
+
+            if (window.innerWidth < 768) sidebar.classList.add('sidebar-mobile-hidden');
+        }
+
+        /********************
+         * Search
+         ********************/
+        function getSearchTerm() {
+            return (searchInput?.value || searchInputMobile?.value || '').trim();
+        }
+
+        function syncSearchInputs(fromEl, toEl) {
+            if (!fromEl || !toEl) return;
+            toEl.value = fromEl.value;
+        }
+
+        /********************
+         * Event Wiring
+         ********************/
+        // Sidebar mobile
+        openSidebarBtn.addEventListener('click', () => sidebar.classList.remove('sidebar-mobile-hidden'));
+        closeSidebarBtn.addEventListener('click', () => sidebar.classList.add('sidebar-mobile-hidden'));
+        document.addEventListener('click', (event) => {
+            const isClickInsideSidebar = sidebar.contains(event.target);
+            const isClickOnOpenButton = openSidebarBtn.contains(event.target);
+            if (!isClickInsideSidebar && !isClickOnOpenButton && window.innerWidth < 768) {
+                sidebar.classList.add('sidebar-mobile-hidden');
+            }
+        });
+
+        // Sidebar navigation
+        document.querySelectorAll('.nav-item').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const href = link.getAttribute('href');
+                if (href) scrollToSection(href);
+            });
+        });
+
+        window.addEventListener('scroll', updateActiveLink);
+        window.addEventListener('resize', updateActiveLink);
+
+        // Reveal on scroll
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) entry.target.classList.add('visible');
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.section-reveal').forEach(section => revealObserver.observe(section));
+
+        // Clients: open/close add modal
+        function openAddClientModal() {
+            toggleSlideOver(addClientModal, modalContent, true);
+            setTimeout(() => document.getElementById('newClientName').focus(), 50);
+        }
+        function closeAddClientModal() { toggleSlideOver(addClientModal, modalContent, false); }
+
+        openModalBtn.addEventListener('click', openAddClientModal);
+        closeModalBtn.addEventListener('click', closeAddClientModal);
+        closeOnBackdrop(addClientModal, closeAddClientModal);
+
+        // Edit client modal
+        function openEditClientModal(client) {
+            document.getElementById('editClientId').value = client.id;
+            document.getElementById('editClientName').value = client.name;
+            document.getElementById('editClientEmail').value = client.email;
+            document.getElementById('editClientCompany').value = client.company?.name || '';
+            document.getElementById('editClientStatus').value = client.status || 'Active';
+
+            toggleSlideOver(editClientModal, editModalContent, true);
+            setTimeout(() => document.getElementById('editClientName').focus(), 50);
+        }
+        function closeEditClientModal() { toggleSlideOver(editClientModal, editModalContent, false); }
+
+        closeEditModalBtn.addEventListener('click', closeEditClientModal);
+        closeOnBackdrop(editClientModal, closeEditClientModal);
+
+        // Profile modal
+        function openProfileModal() {
+            document.getElementById('profileFormName').value = document.getElementById('profileName').textContent;
+            document.getElementById('profileFormTitle').value = document.getElementById('profileTitle').textContent;
+            document.getElementById('profileFormAvatar').value = (profileAvatar.textContent || '').trim();
+
+            toggleSlideOver(profileModal, profileModalContent, true);
+            setTimeout(() => document.getElementById('profileFormName').focus(), 50);
+        }
+        function closeProfileModal() { toggleSlideOver(profileModal, profileModalContent, false); }
+
+        openProfileModalBtn.addEventListener('click', openProfileModal);
+        closeProfileModalBtn.addEventListener('click', closeProfileModal);
+        closeOnBackdrop(profileModal, closeProfileModal);
+
+        // Task modal
+        addTaskBtn.addEventListener('click', () => openTaskModal(null));
+        closeTaskModalBtn.addEventListener('click', closeTaskModal);
+        closeOnBackdrop(taskModal, closeTaskModal);
+
+        // Alert modal
+        closeAlertModalBtn.addEventListener('click', closeAlertModal);
+        closeOnBackdrop(alertModal, closeAlertModal);
+
+        // Simulate alert
+        simulateAlertBtn.addEventListener('click', simulateAlert);
+
+        // Retry fetch
+        retryFetchClientsBtn.addEventListener('click', fetchClients);
+
+        // Add client form
+        addClientForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const newClient = {
+                id: uid(),
+                name: document.getElementById('newClientName').value.trim(),
+                email: document.getElementById('newClientEmail').value.trim(),
+                company: { name: document.getElementById('newClientCompany').value.trim() },
+                status: document.getElementById('newClientStatus').value
+            };
+
+            state.clients.unshift(newClient);
+            addClientForm.reset();
+            closeAddClientModal();
+
+            renderClients(getSearchTerm());
+            updateAllMetrics();
+            showToast('Client added successfully!', 'success');
+        });
+
+        // Edit client form
+        editClientForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const id = Number(document.getElementById('editClientId').value);
+            const idx = state.clients.findIndex(c => c.id === id);
+            if (idx === -1) return;
+
+            state.clients[idx] = {
+                ...state.clients[idx],
+                name: document.getElementById('editClientName').value.trim(),
+                email: document.getElementById('editClientEmail').value.trim(),
+                company: { name: document.getElementById('editClientCompany').value.trim() },
+                status: document.getElementById('editClientStatus').value
+            };
+
+            closeEditClientModal();
+            renderClients(getSearchTerm());
+            updateAllMetrics();
+            showToast('Client updated successfully!', 'success');
+        });
+
+        // Clients row actions (event delegation)
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+
+            const action = btn.dataset.action;
+            if (action === 'edit-client') {
+                const id = Number(btn.dataset.clientId);
+                const client = state.clients.find(c => c.id === id);
+                if (client) openEditClientModal(client);
+            }
+
+            if (action === 'delete-client') {
+                const id = Number(btn.dataset.clientId);
+                const client = state.clients.find(c => c.id === id);
+                if (!client) return;
+
+                if (confirm(`Delete client "${client.name}"? This action cannot be undone.`)) {
+                    state.clients = state.clients.filter(c => c.id !== id);
+                    renderClients(getSearchTerm());
+                    updateAllMetrics();
+                    showToast('Client deleted successfully!', 'error');
+                }
+            }
+        });
+
+        // Profile form
+        profileForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const newName = document.getElementById('profileFormName').value.trim();
+            const newTitle = document.getElementById('profileFormTitle').value.trim();
+            const newAvatar = document.getElementById('profileFormAvatar').value.trim().toUpperCase();
+
+            document.getElementById('profileName').textContent = newName;
+            document.getElementById('profileTitle').textContent = newTitle;
+
+            // If an image exists, keep it. Otherwise update initials.
+            const hasImage = profileAvatar.querySelector('img');
+            if (!hasImage) profileAvatar.textContent = newAvatar || 'JD';
+
+            closeProfileModal();
+            showToast('Profile updated successfully!', 'success');
+        });
+
+        // Avatar upload
+        avatarUpload.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            if (file.size > 2 * 1024 * 1024) {
+                showToast('File size must be less than 2MB', 'error');
+                avatarUpload.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                profileAvatar.innerHTML = `<img src="${event.target.result}" class="w-full h-full object-cover" alt="Profile avatar" />`;
+                showToast('Profile picture updated!', 'success');
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Task cards click
+        tasksGrid.addEventListener('click', (e) => {
+            const card = e.target.closest('[data-task-id]');
+            if (!card) return;
+            const id = Number(card.dataset.taskId);
+            openTaskModal(id);
+        });
+
+        // Task form
+        taskForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const id = document.getElementById('taskId').value ? Number(document.getElementById('taskId').value) : null;
+            const payload = {
+                status: document.getElementById('taskStatus').value,
+                priority: document.getElementById('taskPriority').value,
+                title: document.getElementById('taskTitle').value.trim(),
+                description: document.getElementById('taskDescription').value.trim(),
+                assignee: {
+                    name: document.getElementById('taskAssigneeName').value.trim(),
+                    initials: document.getElementById('taskAssigneeInitials').value.trim().toUpperCase()
+                },
+                updatedAt: Date.now()
+            };
+
+            if (!payload.assignee.initials) payload.assignee.initials = payload.assignee.name.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+
+            if (id) {
+                const idx = state.tasks.findIndex(t => t.id === id);
+                if (idx !== -1) state.tasks[idx] = { ...state.tasks[idx], ...payload };
+                showToast('Task updated successfully!', 'success');
+            } else {
+                state.tasks.unshift({ id: uid(), ...payload });
+                showToast('Task created successfully!', 'success');
+            }
+
+            renderTasks();
+            updateAllMetrics();
+            closeTaskModal();
+        });
+
+        // Delete task
+        deleteTaskBtn.addEventListener('click', () => {
+            const id = document.getElementById('taskId').value ? Number(document.getElementById('taskId').value) : null;
+            if (!id) return;
+
+            const task = state.tasks.find(t => t.id === id);
+            if (!task) return;
+
+            if (confirm(`Delete task "${task.title}"?`)) {
+                state.tasks = state.tasks.filter(t => t.id !== id);
+                renderTasks();
+                updateAllMetrics();
+                closeTaskModal();
+                showToast('Task deleted', 'error');
+            }
+        });
+
+        // Alerts list click
+        alertsListEl.addEventListener('click', (e) => {
+            const row = e.target.closest('[data-alert-id]');
+            if (!row) return;
+            openAlertModal(Number(row.dataset.alertId));
+        });
+
+        // Acknowledge alert
+        ackAlertBtn.addEventListener('click', () => {
+            const id = state.selectedAlertId;
+            if (!id) return;
+            const alert = state.alerts.find(a => a.id === id);
+            if (!alert || alert.acknowledged) return;
+
+            alert.acknowledged = true;
+            showToast('Alert acknowledged', 'success');
+            openAlertModal(id); // refresh modal UI
+            renderAlerts();
+            updateAllMetrics();
+        });
+
+        // Resolve alert
+        resolveAlertBtn.addEventListener('click', () => {
+            const id = state.selectedAlertId;
+            if (!id) return;
+            const alert = state.alerts.find(a => a.id === id);
+            if (!alert) return;
+
+            state.alerts = state.alerts.filter(a => a.id !== id);
+            closeAlertModal();
+            renderAlerts();
+            updateAllMetrics();
+            showToast('Alert resolved', 'success');
+        });
+
+        // Search wiring
+        function onSearchInput(source) {
+            const term = source.value;
+            if (source === searchInput) syncSearchInputs(searchInput, searchInputMobile);
+            if (source === searchInputMobile) syncSearchInputs(searchInputMobile, searchInput);
+            renderClients(term);
+        }
+
+        searchInput.addEventListener('input', () => onSearchInput(searchInput));
+        searchInputMobile.addEventListener('input', () => onSearchInput(searchInputMobile));
+
+        // Escape closes topmost modal (basic)
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            if (!taskModal.classList.contains('hidden')) return closeTaskModal();
+            if (!alertModal.classList.contains('hidden')) return closeAlertModal();
+            if (!profileModal.classList.contains('hidden')) return closeProfileModal();
+            if (!editClientModal.classList.contains('hidden')) return closeEditClientModal();
+            if (!addClientModal.classList.contains('hidden')) return closeAddClientModal();
+        });
+
+        /********************
+         * Init
+         ********************/
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTasks();
+            renderAlerts();
+            updateAllMetrics();
+            fetchClients();
+            updateActiveLink();
+        });
+
+        // Expose for debugging
+        window.__OPSCORE__ = state;
+        window.fetchClients = fetchClients;
+    </script>
+</body>
+</html>
