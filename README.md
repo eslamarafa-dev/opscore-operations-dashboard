@@ -1,8 +1,26 @@
 # OPSCORE - Operations Dashboard
 
+OPSCORE is a production-ready internal operations dashboard designed to give fast-growing companies real-time visibility into performance, tasks, and system health — all in one place.
+
+
 GO Live Preview : https://eslamarafa-dev.github.io/opscore-operations-dashboard/
 
-OPSCORE is a production-ready internal operations dashboard designed to give fast-growing companies real-time visibility into performance, tasks, and system health — all in one place.
+
+<img width="1920" height="877" alt="1" src="https://github.com/user-attachments/assets/cb4f14dc-6721-4a7b-b9ce-37c4db31ce29" />
+
+
+<img width="1920" height="877" alt="2" src="https://github.com/user-attachments/assets/7acc0716-1e03-45f8-a0c6-bad4b4216b2c" />
+
+
+<img width="1920" height="876" alt="3" src="https://github.com/user-attachments/assets/868467da-ec3b-4f77-8148-59fbdcbc4c2a" />
+
+
+<img width="1920" height="875" alt="4" src="https://github.com/user-attachments/assets/ca5cee37-8221-40ce-8a6e-cf7317bf124e" />
+
+
+<img width="1918" height="877" alt="5" src="https://github.com/user-attachments/assets/867e4e97-3d96-4bea-80bd-e35f5522d6ab" />
+
+
 
 ---
 
